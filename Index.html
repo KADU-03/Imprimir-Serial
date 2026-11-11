@@ -27,7 +27,15 @@ button.secondary{background:#334155;color:white}
 .label{background:white;color:black;aspect-ratio:40/50;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;padding:8px}
 .label svg{width:95%;max-height:65%}
 .label span{font-size:14px;font-weight:bold;margin-top:6px;overflow-wrap:anywhere;text-align:center}
-@media(max-width:500px){main{padding:10px}.row{grid-template-columns:1fr}}
+.adjust-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.adjust-item{background:#0f172a;border-radius:8px;padding:12px}
+.adjust-item h3{font-size:15px;margin:0 0 12px}
+.adjust-item input[type=range]{padding:0;accent-color:#22c55e}
+.valor{color:#86efac;font-size:13px}
+@media(max-width:500px){
+main{padding:10px}
+.row,.adjust-grid{grid-template-columns:1fr}
+}
 @media print{
 @page{size:80mm 50mm;margin:0}
 html,body{margin:0;padding:0;background:white}
@@ -35,16 +43,20 @@ main{display:none!important}
 #printArea{display:block!important}
 .sheet{width:80mm;height:50mm;display:grid;grid-template-columns:40mm 40mm;break-after:page;page-break-after:always;overflow:hidden}
 .sheet:last-child{break-after:auto;page-break-after:auto}
-.sheet .label{width:40mm;height:50mm;aspect-ratio:auto;border:0;padding:2mm}
-.sheet .label svg{width:36mm;max-height:29mm}
-.sheet .label span{font-size:11pt}
+.sheet .label{width:40mm;height:50mm;aspect-ratio:auto;border:0;padding:0;position:relative}
+.sheet .conteudo{width:36mm;max-height:46mm;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative}
+.sheet .conteudo svg{width:100%;max-height:29mm}
+.sheet .conteudo span{font-size:11pt}
 }
 #printArea{display:none}
+.conteudo{display:flex;align-items:center;justify-content:center;flex-direction:column;width:100%}
+.conteudo svg{width:95%;max-height:65%}
 </style>
 </head>
 <body>
 <main>
 <h1>Impressor de Seriais Zebra</h1>
+<p>Etiquetas 40 × 50 mm | 2 colunas</p>
 
 <div class="tabs">
 <button id="btnSequencia" class="active" onclick="abrirAba('sequencia')">Gerar sequência</button>
@@ -74,6 +86,31 @@ main{display:none!important}
 </div>
 
 <div class="card">
+<h2>Ajustar posição das etiquetas</h2>
+<p>Movimente cada coluna separadamente para alinhar a impressão.</p>
+
+<div class="adjust-grid">
+<div class="adjust-item">
+<h3>Etiqueta esquerda</h3>
+<label>Horizontal: <span class="valor" id="valorEsqX">-2 mm</span></label>
+<input type="range" id="esqX" min="-10" max="10" step="0.5" value="-2" oninput="ajustar()">
+<label>Vertical: <span class="valor" id="valorEsqY">0 mm</span></label>
+<input type="range" id="esqY" min="-10" max="10" step="0.5" value="0" oninput="ajustar()">
+</div>
+
+<div class="adjust-item">
+<h3>Etiqueta direita</h3>
+<label>Horizontal: <span class="valor" id="valorDirX">2 mm</span></label>
+<input type="range" id="dirX" min="-10" max="10" step="0.5" value="2" oninput="ajustar()">
+<label>Vertical: <span class="valor" id="valorDirY">0 mm</span></label>
+<input type="range" id="dirY" min="-10" max="10" step="0.5" value="0" oninput="ajustar()">
+</div>
+</div>
+
+<button class="secondary" onclick="resetarPosicao()">Restaurar posição</button>
+</div>
+
+<div class="card">
 <h2>Configurações</h2>
 <label>Quantidade de cópias por serial</label>
 <input type="number" id="copias" value="1" min="1" max="100">
@@ -98,6 +135,7 @@ main{display:none!important}
 
 <div id="printArea"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script>
 let seriais=[];
 
@@ -160,14 +198,52 @@ function copias(){
  )||1));
 }
 
-function criarEtiqueta(serial){
+function posicao(coluna){
+ const x=document.getElementById(coluna+"X");
+ const y=document.getElementById(coluna+"Y");
+ return {
+  x:Number(x.value),
+  y:Number(y.value)
+ };
+}
+
+function ajustar(){
+ for(const lado of ["esq","dir"]){
+  const p=posicao(lado);
+  document.getElementById("valor"+(lado==="esq"?"Esq":"Dir")+"X").textContent=p.x+" mm";
+  document.getElementById("valor"+(lado==="esq"?"Esq":"Dir")+"Y").textContent=p.y+" mm";
+ }
+ atualizar();
+}
+
+function resetarPosicao(){
+ document.getElementById("esqX").value=-2;
+ document.getElementById("esqY").value=0;
+ document.getElementById("dirX").value=2;
+ document.getElementById("dirY").value=0;
+ ajustar();
+}
+
+function criarEtiqueta(serial,coluna=0,impressao=false){
  const el=document.createElement("div");
  el.className="label";
+
+ const conteudo=document.createElement("div");
+ conteudo.className="conteudo";
+
+ const p=posicao(coluna===0?"esq":"dir");
+
+ if(impressao){
+  conteudo.style.transform=`translate(${p.x}mm,${p.y}mm)`;
+ }else{
+  conteudo.style.transform=`translate(${p.x*2}px,${p.y*2}px)`;
+ }
+
  const formato=document.getElementById("formato").value;
 
  if(formato!=="numero"){
   const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
-  el.appendChild(svg);
+  conteudo.appendChild(svg);
   try{
    JsBarcode(svg,serial,{
     format:"CODE128",
@@ -179,16 +255,17 @@ function criarEtiqueta(serial){
   }catch(e){
    const aviso=document.createElement("span");
    aviso.textContent="Código inválido";
-   el.appendChild(aviso);
+   conteudo.appendChild(aviso);
   }
  }
 
  if(formato!=="barra"){
   const txt=document.createElement("span");
   txt.textContent=serial;
-  el.appendChild(txt);
+  conteudo.appendChild(txt);
  }
 
+ el.appendChild(conteudo);
  return el;
 }
 
@@ -202,7 +279,7 @@ function atualizar(){
 
  const limite=Math.min(seriais.length,20);
  for(let i=0;i<limite;i++){
-  preview.appendChild(criarEtiqueta(seriais[i]));
+  preview.appendChild(criarEtiqueta(seriais[i],i%2));
  }
 
  if(seriais.length>limite){
@@ -234,10 +311,12 @@ function imprimir(){
  for(let i=0;i<lista.length;i+=2){
   const folha=document.createElement("div");
   folha.className="sheet";
-  folha.appendChild(criarEtiqueta(lista[i]));
+  folha.appendChild(criarEtiqueta(lista[i],0,true));
+
   if(lista[i+1]){
-   folha.appendChild(criarEtiqueta(lista[i+1]));
+   folha.appendChild(criarEtiqueta(lista[i+1],1,true));
   }
+
   area.appendChild(folha);
  }
 
@@ -253,7 +332,7 @@ function limpar(){
 }
 
 document.getElementById("copias").addEventListener("input",atualizar);
+ajustar();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 </body>
 </html>
