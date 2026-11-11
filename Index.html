@@ -17,6 +17,11 @@ textarea{height:130px;resize:vertical}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 button{padding:13px 18px;border:0;border-radius:7px;background:#22c55e;color:#052e16;font-weight:bold;cursor:pointer;margin:8px 5px 0 0}
 button.secondary{background:#334155;color:white}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.tabs button{margin:0;background:#334155;color:white}
+.tabs button.active{background:#22c55e;color:#052e16}
+.tab-content{display:none}
+.tab-content.active{display:block}
 #status{margin-top:12px;color:#86efac}
 #preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}
 .label{background:white;color:black;aspect-ratio:40/50;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;padding:8px}
@@ -41,23 +46,28 @@ main{display:none!important}
 <main>
 <h1>Impressor de Seriais Zebra</h1>
 
-<div class="card">
+<div class="tabs">
+<button id="btnSequencia" class="active" onclick="abrirAba('sequencia')">Gerar sequência</button>
+<button id="btnManual" onclick="abrirAba('manual')">Colar seriais</button>
+</div>
+
+<div id="abaSequencia" class="card tab-content active">
 <h2>Gerar sequência</h2>
 <div class="row">
 <div>
 <label>Serial inicial</label>
-<input id="inicio" value="100001">
+<input id="inicio" value="100">
 </div>
 <div>
 <label>Serial final</label>
-<input id="fim" value="100100">
+<input id="fim" value="10000">
 </div>
 </div>
 <button onclick="gerarSequencia()">Gerar sequência</button>
 </div>
 
-<div class="card">
-<h2>Inserir seriais manualmente</h2>
+<div id="abaManual" class="card tab-content">
+<h2>Colar seriais manualmente</h2>
 <label>Cole os seriais, um por linha</label>
 <textarea id="manual" placeholder="100001&#10;100002&#10;100003"></textarea>
 <button onclick="gerarManual()">Usar lista manual</button>
@@ -90,6 +100,13 @@ main{display:none!important}
 
 <script>
 let seriais=[];
+
+function abrirAba(aba){
+ document.getElementById("abaSequencia").classList.toggle("active",aba==="sequencia");
+ document.getElementById("abaManual").classList.toggle("active",aba==="manual");
+ document.getElementById("btnSequencia").classList.toggle("active",aba==="sequencia");
+ document.getElementById("btnManual").classList.toggle("active",aba==="manual");
+}
 
 function gerarSequencia(){
  const a=document.getElementById("inicio").value.trim();
